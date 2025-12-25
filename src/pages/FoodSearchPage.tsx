@@ -1,7 +1,7 @@
 import { Helmet } from "react-helmet-async";
-import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { FoodSearch } from "@/components/FoodSearch";
+import { BottomNav } from "@/components/BottomNav";
 
 const FoodSearchPage = () => {
   return (
@@ -14,12 +14,12 @@ const FoodSearchPage = () => {
         />
       </Helmet>
 
-      <div className="min-h-screen bg-background">
-        <Navbar />
-        <main className="pt-20">
+      <div className="min-h-screen bg-background gradient-mesh">
+        <main className="pt-8 pb-24">
           <FoodSearch />
         </main>
         <Footer />
+        <BottomNav />
       </div>
     </>
   );

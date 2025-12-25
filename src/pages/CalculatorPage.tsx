@@ -1,7 +1,7 @@
 import { Helmet } from "react-helmet-async";
-import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { CalorieCalculator } from "@/components/CalorieCalculator";
+import { BottomNav } from "@/components/BottomNav";
 
 const CalculatorPage = () => {
   return (
@@ -14,12 +14,12 @@ const CalculatorPage = () => {
         />
       </Helmet>
 
-      <div className="min-h-screen bg-background">
-        <Navbar />
-        <main className="pt-20">
+      <div className="min-h-screen bg-background gradient-mesh">
+        <main className="pt-8 pb-24">
           <CalorieCalculator />
         </main>
         <Footer />
+        <BottomNav />
       </div>
     </>
   );
