@@ -2,6 +2,7 @@ import { Helmet } from "react-helmet-async";
 import { Footer } from "@/components/Footer";
 import { HeroSections } from "@/components/HeroSections";
 import { BottomNav } from "@/components/BottomNav";
+import { Navbar } from "@/components/Navbar";
 
 const Index = () => {
   return (
@@ -20,6 +21,7 @@ const Index = () => {
       </Helmet>
 
       <div className="min-h-screen bg-background gradient-mesh">
+        <Navbar />
         <main className="pb-24">
           <HeroSections />
         </main>
