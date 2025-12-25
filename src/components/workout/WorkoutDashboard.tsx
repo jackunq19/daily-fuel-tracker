@@ -1,14 +1,17 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { Flame, Clock, Trophy, Zap, ChartLine, Dumbbell } from "lucide-react";
+import { Flame, Clock, Trophy, Zap, ChartLine, Dumbbell, Plus, Target } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-
+import { CreateWorkoutPlanModal, WorkoutPlanData } from "./CreateWorkoutPlanModal";
 
 interface WorkoutDashboardProps {
   onViewAnalytics: () => void;
 }
 
 export function WorkoutDashboard({ onViewAnalytics }: WorkoutDashboardProps) {
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  
   // Mock data - in production this would come from state/API
   const todayWorkout = {
     muscleGroup: "Chest & Triceps",
@@ -19,6 +22,12 @@ export function WorkoutDashboard({ onViewAnalytics }: WorkoutDashboardProps) {
   const weeklyProgress = 71; // percentage
   const streak = 5;
   const caloriesBurned = 320;
+  const personalBests = 3;
+
+  const handleCreatePlan = (plan: WorkoutPlanData) => {
+    console.log("Created plan:", plan);
+    // In production, this would update the state/API
+  };
 
   return (
     <div className="container mx-auto px-4 pt-8 pb-6">
@@ -34,15 +43,26 @@ export function WorkoutDashboard({ onViewAnalytics }: WorkoutDashboardProps) {
           </motion.h1>
           <p className="text-muted-foreground mt-1">Let's crush it today 💪</p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onViewAnalytics}
-          className="gap-2"
-        >
-          <ChartLine className="w-4 h-4" />
-          Analytics
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowCreateModal(true)}
+            className="gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            New
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onViewAnalytics}
+            className="gap-2"
+          >
+            <ChartLine className="w-4 h-4" />
+            Analytics
+          </Button>
+        </div>
       </div>
 
       {/* Summary Cards Grid */}
@@ -164,23 +184,33 @@ export function WorkoutDashboard({ onViewAnalytics }: WorkoutDashboardProps) {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="col-span-2"
         >
           <Card className="p-4 glass border-border/30">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                  <Zap className="w-4 h-4 text-warning" />
-                  <span className="text-xs font-medium">Est. Calories Burned Today</span>
-                </div>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-2xl font-bold text-foreground">{caloriesBurned}</span>
-                  <span className="text-sm text-muted-foreground">kcal</span>
-                </div>
-              </div>
-              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                <span className="text-lg">🤖</span>
-              </div>
+            <div className="flex items-center gap-2 text-muted-foreground mb-2">
+              <Zap className="w-4 h-4 text-warning" />
+              <span className="text-xs font-medium">Calories Today</span>
+            </div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-2xl font-bold text-foreground">{caloriesBurned}</span>
+              <span className="text-sm text-muted-foreground">kcal</span>
+            </div>
+          </Card>
+        </motion.div>
+
+        {/* Personal Bests */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+        >
+          <Card className="p-4 glass border-border/30">
+            <div className="flex items-center gap-2 text-muted-foreground mb-2">
+              <Target className="w-4 h-4 text-success" />
+              <span className="text-xs font-medium">PRs This Month</span>
+            </div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-2xl font-bold text-foreground">{personalBests}</span>
+              <span className="text-sm text-muted-foreground">new records</span>
             </div>
           </Card>
         </motion.div>
@@ -206,6 +236,13 @@ export function WorkoutDashboard({ onViewAnalytics }: WorkoutDashboardProps) {
           </div>
         </Card>
       </motion.div>
+
+      {/* Create Workout Modal */}
+      <CreateWorkoutPlanModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onCreatePlan={handleCreatePlan}
+      />
     </div>
   );
 }
