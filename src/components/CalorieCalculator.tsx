@@ -1,8 +1,10 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Calculator, Info, Flame, Activity, Target, ArrowRight } from "lucide-react";
+import { Calculator, Info, Flame, Activity, Target, ArrowRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { useDailyGoals } from "@/hooks/useDailyGoals";
+import { toast } from "sonner";
 
 type Gender = "male" | "female";
 type Goal = "lose" | "maintain" | "gain";
@@ -24,6 +26,7 @@ const goals: { value: Goal; label: string; emoji: string; adjustment: number }[]
 
 export function CalorieCalculator() {
   const navigate = useNavigate();
+  const { setGoalsFromCalculator } = useDailyGoals();
   const [gender, setGender] = useState<Gender>("male");
   const [age, setAge] = useState(25);
   const [height, setHeight] = useState(170);
@@ -31,6 +34,7 @@ export function CalorieCalculator() {
   const [activity, setActivity] = useState<ActivityLevel>("moderate");
   const [goal, setGoal] = useState<Goal>("maintain");
   const [showResults, setShowResults] = useState(false);
+  const [goalsSaved, setGoalsSaved] = useState(false);
 
   const results = useMemo(() => {
     // Mifflin-St Jeor Equation
@@ -70,6 +74,15 @@ export function CalorieCalculator() {
 
   const handleCalculate = () => {
     setShowResults(true);
+    setGoalsSaved(false);
+  };
+
+  const handleSaveGoals = () => {
+    setGoalsFromCalculator(results.targetCalories, results.protein, results.carbs, results.fats);
+    setGoalsSaved(true);
+    toast.success("Daily goals updated!", {
+      description: `Target: ${results.targetCalories} kcal, ${results.protein}g protein, ${results.carbs}g carbs, ${results.fats}g fats`
+    });
   };
 
   const handleGoToDietPlanner = () => {
@@ -311,6 +324,27 @@ export function CalorieCalculator() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Save Goals Button */}
+                  <Button 
+                    variant={goalsSaved ? "outline" : "hero"} 
+                    size="lg" 
+                    className="w-full gap-2"
+                    onClick={handleSaveGoals}
+                    disabled={goalsSaved}
+                  >
+                    {goalsSaved ? (
+                      <>
+                        <Check className="w-5 h-5" />
+                        Goals Saved to Food Tracker
+                      </>
+                    ) : (
+                      <>
+                        <Target className="w-5 h-5" />
+                        Set as My Daily Goals
+                      </>
+                    )}
+                  </Button>
 
                   {/* Go to Diet Planner */}
                   <Button 
