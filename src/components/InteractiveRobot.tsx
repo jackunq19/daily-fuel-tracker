@@ -158,12 +158,8 @@ export function InteractiveRobot() {
             transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
           />
 
-          {/* Left Arm */}
-          <motion.g
-            style={{ originX: "95px", originY: "200px" }}
-            animate={isHovered ? { rotate: [0, -15, 0] } : { rotate: 0 }}
-            transition={{ duration: 1.5, repeat: isHovered ? Infinity : 0, ease: "easeInOut" }}
-          >
+          {/* Left Arm - Static */}
+          <g>
             <rect x="55" y="195" width="45" height="24" rx="8" fill="url(#robotBody)" />
             <rect x="50" y="218" width="24" height="65" rx="6" fill="url(#robotBody)" />
             <circle cx="62" cy="290" r="14" fill="url(#robotBody)" />
@@ -171,14 +167,10 @@ export function InteractiveRobot() {
             <rect x="35" y="295" width="54" height="10" rx="3" fill="#3f3f46" />
             <rect x="26" y="287" width="16" height="26" rx="4" fill="#52525b" />
             <rect x="82" y="287" width="16" height="26" rx="4" fill="#52525b" />
-          </motion.g>
+          </g>
 
-          {/* Right Arm */}
-          <motion.g
-            style={{ originX: "225px", originY: "200px" }}
-            animate={isHovered ? { rotate: [0, 15, 0] } : { rotate: 0 }}
-            transition={{ duration: 1.5, repeat: isHovered ? Infinity : 0, ease: "easeInOut", delay: 0.2 }}
-          >
+          {/* Right Arm - Static */}
+          <g>
             <rect x="220" y="195" width="45" height="24" rx="8" fill="url(#robotBody)" />
             <rect x="246" y="218" width="24" height="65" rx="6" fill="url(#robotBody)" />
             <circle cx="258" cy="290" r="14" fill="url(#robotBody)" />
@@ -186,7 +178,7 @@ export function InteractiveRobot() {
             <rect x="245" y="260" width="26" height="42" rx="5" fill="url(#robotAccent)" opacity="0.85" />
             <rect x="242" y="255" width="32" height="8" rx="3" fill="#3f3f46" />
             <rect x="250" y="242" width="16" height="15" rx="3" fill="#52525b" />
-          </motion.g>
+          </g>
 
           {/* Head */}
           <motion.g

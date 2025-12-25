@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const navLinks = [
   { href: "/food-search", label: "Food Search" },
@@ -69,7 +70,8 @@ export function Navbar() {
           </div>
 
           {/* Desktop CTA */}
-          <div className="hidden md:flex items-center gap-4">
+          <div className="hidden md:flex items-center gap-3">
+            <ThemeToggle />
             {user ? (
               <>
                 <span className="text-sm text-muted-foreground">
@@ -126,46 +128,49 @@ export function Navbar() {
                   {link.label}
                 </button>
               ))}
-              <div className="flex gap-3 px-4 pt-4 mt-2 border-t border-border">
-                {user ? (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="flex-1 gap-2" 
-                    onClick={() => {
-                      handleLogout();
-                      setIsOpen(false);
-                    }}
-                  >
-                    <LogOut className="w-4 h-4" />
-                    Logout
-                  </Button>
-                ) : (
-                  <>
+              <div className="flex items-center justify-between gap-3 px-4 pt-4 mt-2 border-t border-border">
+                <ThemeToggle />
+                <div className="flex gap-3 flex-1">
+                  {user ? (
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      className="flex-1" 
+                      className="flex-1 gap-2" 
                       onClick={() => {
-                        navigate('/auth');
+                        handleLogout();
                         setIsOpen(false);
                       }}
                     >
-                      Log In
+                      <LogOut className="w-4 h-4" />
+                      Logout
                     </Button>
-                    <Button 
-                      variant="default" 
-                      size="sm" 
-                      className="flex-1" 
-                      onClick={() => {
-                        navigate('/auth');
-                        setIsOpen(false);
-                      }}
-                    >
-                      Get Started
-                    </Button>
-                  </>
-                )}
+                  ) : (
+                    <>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex-1" 
+                        onClick={() => {
+                          navigate('/auth');
+                          setIsOpen(false);
+                        }}
+                      >
+                        Log In
+                      </Button>
+                      <Button 
+                        variant="default" 
+                        size="sm" 
+                        className="flex-1" 
+                        onClick={() => {
+                          navigate('/auth');
+                          setIsOpen(false);
+                        }}
+                      >
+                        Get Started
+                      </Button>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           </motion.div>
