@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Clock, Check, Timer, ChevronDown, ChevronUp, Dumbbell, PartyPopper } from "lucide-react";
+import { ArrowLeft, Clock, Check, Timer, ChevronDown, ChevronUp, Dumbbell, PartyPopper, Plus, Pencil } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { WorkoutDay, Exercise } from "@/pages/WorkoutPage";
+import { AddExerciseModal } from "./AddExerciseModal";
+import { EditSetModal } from "./EditSetModal";
+import { RestTimer } from "./RestTimer";
 import confetti from "canvas-confetti";
 
 interface WorkoutDetailProps {
@@ -16,6 +19,10 @@ export function WorkoutDetail({ day, onBack }: WorkoutDetailProps) {
   const [exercises, setExercises] = useState(day.exercises);
   const [expandedExercise, setExpandedExercise] = useState<string | null>(null);
   const [showCompletion, setShowCompletion] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showRestTimer, setShowRestTimer] = useState(false);
+  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
 
   const completedExercises = exercises.filter(e => e.completed).length;
   const totalExercises = exercises.length;
@@ -47,6 +54,25 @@ export function WorkoutDetail({ day, onBack }: WorkoutDetailProps) {
         return ex;
       })
     );
+  };
+
+  const handleAddExercise = (exercise: Exercise) => {
+    setExercises([...exercises, exercise]);
+  };
+
+  const handleEditExercise = (exercise: Exercise) => {
+    setSelectedExercise(exercise);
+    setShowEditModal(true);
+  };
+
+  const handleSaveExercise = (updatedExercise: Exercise) => {
+    setExercises(prev => 
+      prev.map(ex => ex.id === updatedExercise.id ? updatedExercise : ex)
+    );
+  };
+
+  const handleDeleteExercise = (exerciseId: string) => {
+    setExercises(prev => prev.filter(ex => ex.id !== exerciseId));
   };
 
   const handleMarkComplete = () => {
@@ -170,130 +196,213 @@ export function WorkoutDetail({ day, onBack }: WorkoutDetailProps) {
         <Progress value={progress} className="h-2" />
       </Card>
 
+      {/* Quick Actions */}
+      <div className="flex gap-2 mb-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowRestTimer(true)}
+          className="gap-2"
+        >
+          <Timer className="w-4 h-4" />
+          Rest Timer
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowAddModal(true)}
+          className="gap-2"
+        >
+          <Plus className="w-4 h-4" />
+          Add Exercise
+        </Button>
+      </div>
+
       {/* Exercise List */}
       <div className="space-y-3">
-        {exercises.map((exercise, index) => (
-          <motion.div
-            key={exercise.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-          >
-            <Card 
-              className={`overflow-hidden glass transition-all duration-300 ${
-                exercise.completed ? "border-success/30 bg-success/5" : "border-border/30"
-              }`}
+        {exercises.length === 0 ? (
+          <Card className="p-8 glass border-border/30 text-center">
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring" }}
+              className="text-4xl mb-4"
             >
-              {/* Exercise Header */}
-              <div 
-                className="p-4 flex items-center justify-between cursor-pointer"
-                onClick={() => toggleExercise(exercise.id)}
+              🏋️
+            </motion.div>
+            <h3 className="text-lg font-semibold text-foreground mb-2">No Exercises Yet</h3>
+            <p className="text-muted-foreground text-sm mb-4">
+              Start building your workout by adding exercises
+            </p>
+            <Button onClick={() => setShowAddModal(true)} className="gap-2">
+              <Plus className="w-4 h-4" />
+              Add Your First Exercise
+            </Button>
+          </Card>
+        ) : (
+          exercises.map((exercise, index) => (
+            <motion.div
+              key={exercise.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+            >
+              <Card 
+                className={`overflow-hidden glass transition-all duration-300 ${
+                  exercise.completed ? "border-success/30 bg-success/5" : "border-border/30"
+                }`}
               >
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleExerciseComplete(exercise.id);
-                    }}
-                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                      exercise.completed 
-                        ? "bg-success border-success text-success-foreground" 
-                        : "border-muted-foreground hover:border-primary"
-                    }`}
-                  >
-                    {exercise.completed && <Check className="w-4 h-4" />}
-                  </button>
-                  <div>
-                    <h3 className={`font-medium ${exercise.completed ? "text-muted-foreground line-through" : "text-foreground"}`}>
-                      {exercise.name}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {exercise.sets.length} sets × {exercise.sets[0]?.reps} reps
-                    </p>
+                {/* Exercise Header */}
+                <div 
+                  className="p-4 flex items-center justify-between cursor-pointer"
+                  onClick={() => toggleExercise(exercise.id)}
+                >
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleExerciseComplete(exercise.id);
+                      }}
+                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                        exercise.completed 
+                          ? "bg-success border-success text-success-foreground" 
+                          : "border-muted-foreground hover:border-primary"
+                      }`}
+                    >
+                      {exercise.completed && <Check className="w-4 h-4" />}
+                    </button>
+                    <div>
+                      <h3 className={`font-medium ${exercise.completed ? "text-muted-foreground line-through" : "text-foreground"}`}>
+                        {exercise.name}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {exercise.sets.length} sets × {exercise.sets[0]?.reps} reps
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditExercise(exercise);
+                      }}
+                      className="p-2 hover:bg-muted/50 rounded-lg transition-colors"
+                    >
+                      <Pencil className="w-4 h-4 text-muted-foreground" />
+                    </button>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowRestTimer(true);
+                      }}
+                      className="p-2 hover:bg-muted/50 rounded-lg transition-colors"
+                    >
+                      <Timer className="w-4 h-4 text-muted-foreground" />
+                    </button>
+                    {expandedExercise === exercise.id ? (
+                      <ChevronUp className="w-5 h-5 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                    )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button className="p-2 hover:bg-muted/50 rounded-lg transition-colors">
-                    <Timer className="w-4 h-4 text-muted-foreground" />
-                  </button>
-                  {expandedExercise === exercise.id ? (
-                    <ChevronUp className="w-5 h-5 text-muted-foreground" />
-                  ) : (
-                    <ChevronDown className="w-5 h-5 text-muted-foreground" />
-                  )}
-                </div>
-              </div>
 
-              {/* Expanded Sets */}
-              <AnimatePresence>
-                {expandedExercise === exercise.id && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="border-t border-border/30"
-                  >
-                    <div className="p-4 space-y-2">
-                      {exercise.sets.map((set, setIndex) => (
-                        <div 
-                          key={setIndex}
-                          className={`flex items-center justify-between p-3 rounded-xl transition-all ${
-                            set.completed ? "bg-success/10" : "bg-muted/30"
-                          }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <button
-                              onClick={() => toggleSetComplete(exercise.id, setIndex)}
-                              className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                                set.completed 
-                                  ? "bg-success border-success text-success-foreground" 
-                                  : "border-muted-foreground hover:border-primary"
-                              }`}
-                            >
-                              {set.completed && <Check className="w-3 h-3" />}
-                            </button>
-                            <span className="text-sm font-medium text-foreground">Set {setIndex + 1}</span>
+                {/* Expanded Sets */}
+                <AnimatePresence>
+                  {expandedExercise === exercise.id && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="border-t border-border/30"
+                    >
+                      <div className="p-4 space-y-2">
+                        {exercise.sets.map((set, setIndex) => (
+                          <div 
+                            key={setIndex}
+                            className={`flex items-center justify-between p-3 rounded-xl transition-all ${
+                              set.completed ? "bg-success/10" : "bg-muted/30"
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <button
+                                onClick={() => toggleSetComplete(exercise.id, setIndex)}
+                                className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                                  set.completed 
+                                    ? "bg-success border-success text-success-foreground" 
+                                    : "border-muted-foreground hover:border-primary"
+                                }`}
+                              >
+                                {set.completed && <Check className="w-3 h-3" />}
+                              </button>
+                              <span className="text-sm font-medium text-foreground">Set {setIndex + 1}</span>
+                            </div>
+                            <div className="flex items-center gap-4 text-sm">
+                              <span className="text-muted-foreground">{set.reps} reps</span>
+                              <span className="text-foreground font-medium">{set.weight} lbs</span>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-4 text-sm">
-                            <span className="text-muted-foreground">{set.reps} reps</span>
-                            <span className="text-foreground font-medium">{set.weight} lbs</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </Card>
-          </motion.div>
-        ))}
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </Card>
+            </motion.div>
+          ))
+        )}
       </div>
 
       {/* Action Buttons */}
-      <motion.div 
-        className="fixed bottom-24 left-0 right-0 px-4"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
-      >
-        <div className="max-w-lg mx-auto flex gap-2">
-          <Button
-            variant="outline"
-            className="flex-1"
-            onClick={onBack}
-          >
-            Skip
-          </Button>
-          <Button
-            className="flex-1 gap-2"
-            onClick={handleMarkComplete}
-          >
-            <Check className="w-4 h-4" />
-            Complete Workout
-          </Button>
-        </div>
-      </motion.div>
+      {exercises.length > 0 && (
+        <motion.div 
+          className="fixed bottom-24 left-0 right-0 px-4"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+        >
+          <div className="max-w-lg mx-auto flex gap-2">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={onBack}
+            >
+              Skip
+            </Button>
+            <Button
+              className="flex-1 gap-2"
+              onClick={handleMarkComplete}
+            >
+              <Check className="w-4 h-4" />
+              Complete Workout
+            </Button>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Modals */}
+      <AddExerciseModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onAddExercise={handleAddExercise}
+      />
+
+      <EditSetModal
+        isOpen={showEditModal}
+        exercise={selectedExercise}
+        onClose={() => {
+          setShowEditModal(false);
+          setSelectedExercise(null);
+        }}
+        onSave={handleSaveExercise}
+        onDelete={handleDeleteExercise}
+      />
+
+      <RestTimer
+        isOpen={showRestTimer}
+        onClose={() => setShowRestTimer(false)}
+      />
     </div>
   );
 }

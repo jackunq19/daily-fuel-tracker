@@ -1,14 +1,16 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Plus, Calendar } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { WorkoutDay } from "@/pages/WorkoutPage";
+import { CreateWorkoutPlanModal, WorkoutPlanData } from "./CreateWorkoutPlanModal";
 
 interface WeeklyPlannerProps {
   onDaySelect: (day: WorkoutDay) => void;
 }
 
-const mockWeekData: WorkoutDay[] = [
+const initialWeekData: WorkoutDay[] = [
   {
     day: "Mon",
     date: "23",
@@ -115,17 +117,47 @@ const getStatusBorder = (status: WorkoutDay["status"]) => {
 
 export function WeeklyPlanner({ onDaySelect }: WeeklyPlannerProps) {
   const [selectedDayIndex, setSelectedDayIndex] = useState<number | null>(null);
+  const [weekData, setWeekData] = useState<WorkoutDay[]>(initialWeekData);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+
+  const handleCreatePlan = (planData: WorkoutPlanData) => {
+    const dayIndex = weekData.findIndex(d => 
+      d.day.toLowerCase() === planData.day.toLowerCase().slice(0, 3)
+    );
+    
+    if (dayIndex !== -1) {
+      const newWeekData = [...weekData];
+      newWeekData[dayIndex] = {
+        ...newWeekData[dayIndex],
+        muscleGroup: planData.muscleGroup,
+        status: planData.isRestDay ? "rest" : "planned",
+        exercises: planData.isRestDay ? [] : newWeekData[dayIndex].exercises,
+      };
+      setWeekData(newWeekData);
+    }
+  };
 
   return (
     <div className="container mx-auto px-4 pb-6">
-      <motion.h2 
-        className="text-lg font-semibold text-foreground mb-4"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.3 }}
-      >
-        This Week
-      </motion.h2>
+      <div className="flex items-center justify-between mb-4">
+        <motion.h2 
+          className="text-lg font-semibold text-foreground"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+        >
+          This Week
+        </motion.h2>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowCreateModal(true)}
+          className="gap-2"
+        >
+          <Calendar className="w-4 h-4" />
+          Plan Day
+        </Button>
+      </div>
 
       {/* Horizontal Day Selector */}
       <motion.div 
@@ -134,7 +166,7 @@ export function WeeklyPlanner({ onDaySelect }: WeeklyPlannerProps) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
       >
-        {mockWeekData.map((day, index) => (
+        {weekData.map((day, index) => (
           <motion.button
             key={day.day}
             onClick={() => setSelectedDayIndex(selectedDayIndex === index ? null : index)}
@@ -172,24 +204,24 @@ export function WeeklyPlanner({ onDaySelect }: WeeklyPlannerProps) {
           transition={{ duration: 0.3 }}
         >
           <Card 
-            className={`p-4 glass mt-2 ${getStatusBorder(mockWeekData[selectedDayIndex].status)} cursor-pointer hover-glow`}
-            onClick={() => onDaySelect(mockWeekData[selectedDayIndex])}
+            className={`p-4 glass mt-2 ${getStatusBorder(weekData[selectedDayIndex].status)} cursor-pointer hover-glow`}
+            onClick={() => onDaySelect(weekData[selectedDayIndex])}
           >
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-semibold text-foreground">
-                  {mockWeekData[selectedDayIndex].muscleGroup}
+                  {weekData[selectedDayIndex].muscleGroup}
                 </h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {mockWeekData[selectedDayIndex].status === "rest" 
+                  {weekData[selectedDayIndex].status === "rest" 
                     ? "Time to recover 😌" 
-                    : `${mockWeekData[selectedDayIndex].exercises.length} exercises planned`
+                    : `${weekData[selectedDayIndex].exercises.length} exercises planned`
                   }
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <span className={`px-2 py-1 rounded-lg text-xs font-medium ${getStatusColor(mockWeekData[selectedDayIndex].status)}`}>
-                  {mockWeekData[selectedDayIndex].status.charAt(0).toUpperCase() + mockWeekData[selectedDayIndex].status.slice(1)}
+                <span className={`px-2 py-1 rounded-lg text-xs font-medium ${getStatusColor(weekData[selectedDayIndex].status)}`}>
+                  {weekData[selectedDayIndex].status.charAt(0).toUpperCase() + weekData[selectedDayIndex].status.slice(1)}
                 </span>
                 <ChevronRight className="w-5 h-5 text-muted-foreground" />
               </div>
@@ -198,9 +230,27 @@ export function WeeklyPlanner({ onDaySelect }: WeeklyPlannerProps) {
         </motion.div>
       )}
 
+      {/* Quick Add Button for Empty Days */}
+      {selectedDayIndex !== null && weekData[selectedDayIndex].exercises.length === 0 && weekData[selectedDayIndex].status !== "rest" && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="mt-3"
+        >
+          <Button
+            variant="outline"
+            className="w-full gap-2"
+            onClick={() => onDaySelect(weekData[selectedDayIndex])}
+          >
+            <Plus className="w-4 h-4" />
+            Add Exercises to This Day
+          </Button>
+        </motion.div>
+      )}
+
       {/* Status Legend */}
       <motion.div 
-        className="flex items-center justify-center gap-4 mt-6"
+        className="flex items-center justify-center gap-4 mt-6 flex-wrap"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.5 }}
@@ -222,6 +272,13 @@ export function WeeklyPlanner({ onDaySelect }: WeeklyPlannerProps) {
           <span className="text-xs text-muted-foreground">Rest</span>
         </div>
       </motion.div>
+
+      {/* Create Workout Plan Modal */}
+      <CreateWorkoutPlanModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onCreatePlan={handleCreatePlan}
+      />
     </div>
   );
 }
