@@ -1,9 +1,21 @@
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
+
+const nutritionTips = [
+  "Protein helps build muscle! 💪",
+  "Stay hydrated, drink 8 glasses daily! 💧",
+  "Eat the rainbow for vitamins! 🌈",
+  "Fiber keeps you full longer! 🥦",
+  "Healthy fats fuel your brain! 🧠",
+  "Track your macros for results! 📊",
+  "Post-workout protein is key! 🏋️",
+  "Complex carbs = sustained energy! ⚡",
+];
 
 export function InteractiveRobot() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isHovered, setIsHovered] = useState(false);
+  const [currentTip, setCurrentTip] = useState(0);
   
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
@@ -11,6 +23,22 @@ export function InteractiveRobot() {
   const springConfig = { stiffness: 150, damping: 25 };
   const rotateX = useSpring(useTransform(mouseY, [-0.5, 0.5], [8, -8]), springConfig);
   const rotateY = useSpring(useTransform(mouseX, [-0.5, 0.5], [-8, 8]), springConfig);
+  
+  // Eye tracking - smoother springs for eyes
+  const eyeSpring = { stiffness: 300, damping: 30 };
+  const leftEyeX = useSpring(useTransform(mouseX, [-0.5, 0.5], [-4, 4]), eyeSpring);
+  const leftEyeY = useSpring(useTransform(mouseY, [-0.5, 0.5], [-3, 3]), eyeSpring);
+  const rightEyeX = useSpring(useTransform(mouseX, [-0.5, 0.5], [-4, 4]), eyeSpring);
+  const rightEyeY = useSpring(useTransform(mouseY, [-0.5, 0.5], [-3, 3]), eyeSpring);
+
+  // Cycle through tips when hovered
+  useEffect(() => {
+    if (!isHovered) return;
+    const interval = setInterval(() => {
+      setCurrentTip((prev) => (prev + 1) % nutritionTips.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [isHovered]);
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!containerRef.current) return;
@@ -37,6 +65,33 @@ export function InteractiveRobot() {
       style={{ rotateX, rotateY, perspective: 1000 }}
       className="relative w-full max-w-sm h-[420px] cursor-pointer select-none"
     >
+      {/* Speech bubble */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.8, y: 10 }}
+        animate={{ 
+          opacity: isHovered ? 1 : 0, 
+          scale: isHovered ? 1 : 0.8,
+          y: isHovered ? 0 : 10
+        }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
+        className="absolute -top-2 left-1/2 -translate-x-1/2 z-10"
+      >
+        <div className="relative bg-card border border-border rounded-2xl px-4 py-3 shadow-lg max-w-[220px]">
+          <motion.p 
+            key={currentTip}
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -5 }}
+            transition={{ duration: 0.3 }}
+            className="text-sm font-medium text-foreground text-center"
+          >
+            {nutritionTips[currentTip]}
+          </motion.p>
+          {/* Speech bubble tail */}
+          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-card border-r border-b border-border rotate-45" />
+        </div>
+      </motion.div>
+
       {/* Subtle glow */}
       <motion.div
         animate={{ opacity: isHovered ? 0.5 : 0.25 }}
@@ -48,7 +103,7 @@ export function InteractiveRobot() {
       <motion.div
         animate={{ y: [0, -6, 0] }}
         transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-        className="relative w-full h-full flex items-center justify-center"
+        className="relative w-full h-full flex items-center justify-center pt-8"
       >
         <svg viewBox="0 0 320 420" className="w-full h-full">
           <defs>
@@ -147,27 +202,39 @@ export function InteractiveRobot() {
             <ellipse cx="218" cy="115" rx="16" ry="24" fill="url(#robotAccent)" />
             {/* Face screen */}
             <rect x="120" y="88" width="80" height="58" rx="12" fill="#18181b" />
-            {/* Eyes */}
-            <motion.ellipse
-              cx="145"
-              cy="117"
-              rx="12"
-              ry="14"
-              fill="hsl(var(--primary))"
-              filter="url(#softGlow)"
-              animate={isHovered ? { scaleY: [1, 0.15, 1] } : { scaleY: 1 }}
-              transition={{ duration: 0.25, repeat: isHovered ? 1 : 0, repeatDelay: 2.5 }}
-            />
-            <motion.ellipse
-              cx="175"
-              cy="117"
-              rx="12"
-              ry="14"
-              fill="hsl(var(--primary))"
-              filter="url(#softGlow)"
-              animate={isHovered ? { scaleY: [1, 0.15, 1] } : { scaleY: 1 }}
-              transition={{ duration: 0.25, repeat: isHovered ? 1 : 0, repeatDelay: 2.5 }}
-            />
+            
+            {/* Left Eye - with tracking */}
+            <motion.g style={{ x: leftEyeX, y: leftEyeY }}>
+              <motion.ellipse
+                cx="145"
+                cy="117"
+                rx="12"
+                ry="14"
+                fill="hsl(var(--primary))"
+                filter="url(#softGlow)"
+                animate={isHovered ? { scaleY: [1, 0.15, 1] } : { scaleY: 1 }}
+                transition={{ duration: 0.25, repeat: isHovered ? 1 : 0, repeatDelay: 2.5 }}
+              />
+              {/* Pupil */}
+              <circle cx="147" cy="118" r="4" fill="#18181b" opacity="0.6" />
+            </motion.g>
+            
+            {/* Right Eye - with tracking */}
+            <motion.g style={{ x: rightEyeX, y: rightEyeY }}>
+              <motion.ellipse
+                cx="175"
+                cy="117"
+                rx="12"
+                ry="14"
+                fill="hsl(var(--primary))"
+                filter="url(#softGlow)"
+                animate={isHovered ? { scaleY: [1, 0.15, 1] } : { scaleY: 1 }}
+                transition={{ duration: 0.25, repeat: isHovered ? 1 : 0, repeatDelay: 2.5 }}
+              />
+              {/* Pupil */}
+              <circle cx="177" cy="118" r="4" fill="#18181b" opacity="0.6" />
+            </motion.g>
+            
             {/* Antenna */}
             <rect x="155" y="48" width="10" height="26" rx="5" fill="url(#robotBody)" />
             <motion.circle
