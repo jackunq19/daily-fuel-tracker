@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Home, Search, Calculator, UtensilsCrossed, LogIn, Moon, Sun, User } from "lucide-react";
+import { Home, Search, Calculator, UtensilsCrossed, LogIn, Moon, Sun, Dumbbell } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User as SupabaseUser } from "@supabase/supabase-js";
@@ -11,8 +11,9 @@ const navItemsLeft = [
   { icon: Search, label: "Foods", path: "/food-search" },
 ];
 
-const navItemsRight = [
-  { icon: Calculator, label: "Calculate", path: "/calculator" },
+const navItemsCenter = [
+  { icon: Calculator, label: "Calc", path: "/calculator" },
+  { icon: Dumbbell, label: "Workout", path: "/workout" },
   { icon: UtensilsCrossed, label: "Diet", path: "/diet-planner" },
 ];
 
@@ -84,7 +85,12 @@ export function BottomNav() {
           <NavButton key={item.path} item={item} />
         ))}
 
-        {/* Theme Toggle - Center */}
+        {/* Center nav items */}
+        {navItemsCenter.map((item) => (
+          <NavButton key={item.path} item={item} />
+        ))}
+
+        {/* Theme Toggle */}
         <motion.button
           onClick={toggleTheme}
           className="relative flex flex-col items-center justify-center w-14 h-14 rounded-2xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-300"
@@ -108,11 +114,6 @@ export function BottomNav() {
             {theme === "dark" ? "Light" : "Dark"}
           </span>
         </motion.button>
-
-        {/* Right nav items */}
-        {navItemsRight.map((item) => (
-          <NavButton key={item.path} item={item} />
-        ))}
 
         {/* Divider */}
         <div className="w-px h-8 bg-border/50 mx-1" />

@@ -10,6 +10,7 @@ import FoodSearchPage from "./pages/FoodSearchPage";
 import CalculatorPage from "./pages/CalculatorPage";
 import DietPlannerPage from "./pages/DietPlannerPage";
 import ProfilePage from "./pages/ProfilePage";
+import WorkoutPage from "./pages/WorkoutPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/calculator" element={<CalculatorPage />} />
             <Route path="/diet-planner" element={<DietPlannerPage />} />
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/workout" element={<WorkoutPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
