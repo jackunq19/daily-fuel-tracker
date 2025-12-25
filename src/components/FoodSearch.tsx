@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Plus, Info, ChevronRight, Loader2, Database, TrendingUp } from "lucide-react";
+import { Search, Plus, Minus, ChevronRight, Loader2, Database, TrendingUp, X, ShoppingBasket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -18,6 +18,10 @@ interface FoodItem {
   servingSize: string;
   servingWeight: number;
   source: 'usda' | 'custom';
+}
+
+interface SelectedFood extends FoodItem {
+  quantity: number;
 }
 
 const popularSearches = [
@@ -49,7 +53,8 @@ function MacroBar({ label, value, maxValue, color }: { label: string; value: num
 export function FoodSearch() {
   const [searchQuery, setSearchQuery] = useState("");
   const [foods, setFoods] = useState<FoodItem[]>([]);
-  const [selectedFood, setSelectedFood] = useState<FoodItem | null>(null);
+  const [selectedFoods, setSelectedFoods] = useState<SelectedFood[]>([]);
+  const [expandedFood, setExpandedFood] = useState<FoodItem | null>(null);
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const { toast } = useToast();
@@ -66,7 +71,7 @@ export function FoodSearch() {
 
     try {
       const { data, error } = await supabase.functions.invoke('search-food', {
-        body: { query, pageSize: 20 },
+        body: { query, pageSize: 15 },
       });
 
       if (error) throw error;
@@ -101,6 +106,50 @@ export function FoodSearch() {
     searchFoods(term);
   };
 
+  const addFood = (food: FoodItem) => {
+    const existing = selectedFoods.find(f => f.id === food.id);
+    if (existing) {
+      setSelectedFoods(prev => 
+        prev.map(f => f.id === food.id ? { ...f, quantity: f.quantity + 1 } : f)
+      );
+    } else {
+      setSelectedFoods(prev => [...prev, { ...food, quantity: 1 }]);
+    }
+    toast({
+      title: "Added to tracker",
+      description: `${food.name} added to your selection.`,
+    });
+  };
+
+  const removeFood = (foodId: string) => {
+    const existing = selectedFoods.find(f => f.id === foodId);
+    if (existing && existing.quantity > 1) {
+      setSelectedFoods(prev => 
+        prev.map(f => f.id === foodId ? { ...f, quantity: f.quantity - 1 } : f)
+      );
+    } else {
+      setSelectedFoods(prev => prev.filter(f => f.id !== foodId));
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedFoods([]);
+  };
+
+  const isSelected = (foodId: string) => selectedFoods.some(f => f.id === foodId);
+  const getQuantity = (foodId: string) => selectedFoods.find(f => f.id === foodId)?.quantity || 0;
+
+  // Calculate totals
+  const totals = selectedFoods.reduce(
+    (acc, food) => ({
+      calories: acc.calories + food.calories * food.quantity,
+      protein: acc.protein + food.protein * food.quantity,
+      carbs: acc.carbs + food.carbs * food.quantity,
+      fats: acc.fats + food.fats * food.quantity,
+    }),
+    { calories: 0, protein: 0, carbs: 0, fats: 0 }
+  );
+
   const getCategoryEmoji = (category: string) => {
     const lower = category.toLowerCase();
     if (lower.includes('beef') || lower.includes('pork') || lower.includes('meat')) return "🥩";
@@ -132,15 +181,86 @@ export function FoodSearch() {
             <span>Real-Time Data</span>
           </div>
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-            Search Foods & Nutrition
+            Search Foods & Track Nutrition
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Access accurate nutrition data from the USDA database. 
-            Real-time information for thousands of foods worldwide.
+            Search for foods, add them to your tracker, and see your total calories and macros in real-time.
           </p>
         </motion.div>
 
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-5xl mx-auto">
+          {/* Selection Summary - Fixed at top when items selected */}
+          <AnimatePresence>
+            {selectedFoods.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="mb-6 p-5 rounded-2xl bg-gradient-to-r from-primary/10 via-primary/5 to-accent/10 border-2 border-primary/20 backdrop-blur-sm"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                      <ShoppingBasket className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-foreground">Your Selection</h3>
+                      <p className="text-sm text-muted-foreground">{selectedFoods.length} items • {selectedFoods.reduce((a, f) => a + f.quantity, 0)} servings</p>
+                    </div>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={clearSelection} className="text-muted-foreground hover:text-destructive">
+                    <X className="w-4 h-4 mr-1" />
+                    Clear All
+                  </Button>
+                </div>
+
+                {/* Totals Grid */}
+                <div className="grid grid-cols-4 gap-4 mb-4">
+                  <div className="text-center p-3 rounded-xl bg-card/50">
+                    <p className="text-2xl font-bold text-foreground">{Math.round(totals.calories)}</p>
+                    <p className="text-xs text-muted-foreground">Calories</p>
+                  </div>
+                  <div className="text-center p-3 rounded-xl bg-macro-protein/10">
+                    <p className="text-2xl font-bold text-macro-protein">{Math.round(totals.protein)}g</p>
+                    <p className="text-xs text-muted-foreground">Protein</p>
+                  </div>
+                  <div className="text-center p-3 rounded-xl bg-macro-carbs/10">
+                    <p className="text-2xl font-bold text-macro-carbs">{Math.round(totals.carbs)}g</p>
+                    <p className="text-xs text-muted-foreground">Carbs</p>
+                  </div>
+                  <div className="text-center p-3 rounded-xl bg-macro-fats/10">
+                    <p className="text-2xl font-bold text-macro-fats">{Math.round(totals.fats)}g</p>
+                    <p className="text-xs text-muted-foreground">Fats</p>
+                  </div>
+                </div>
+
+                {/* Selected Items */}
+                <div className="flex flex-wrap gap-2">
+                  {selectedFoods.map((food) => (
+                    <motion.div
+                      key={food.id}
+                      layout
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      className="flex items-center gap-2 px-3 py-2 rounded-full bg-card border border-border text-sm"
+                    >
+                      <span className="text-base">{getCategoryEmoji(food.category)}</span>
+                      <span className="font-medium text-foreground max-w-32 truncate">{food.name}</span>
+                      <span className="text-muted-foreground">×{food.quantity}</span>
+                      <button
+                        onClick={() => removeFood(food.id)}
+                        className="w-5 h-5 rounded-full bg-muted hover:bg-destructive/20 hover:text-destructive flex items-center justify-center transition-colors"
+                      >
+                        <Minus className="w-3 h-3" />
+                      </button>
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Search Input */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -197,15 +317,17 @@ export function FoodSearch() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ delay: index * 0.03 }}
-                  onClick={() => setSelectedFood(selectedFood?.id === food.id ? null : food)}
-                  className={`group p-5 rounded-xl bg-card border-2 cursor-pointer transition-all card-hover ${
-                    selectedFood?.id === food.id
-                      ? "border-primary shadow-md"
+                  className={`group p-5 rounded-xl bg-card border-2 transition-all card-hover ${
+                    isSelected(food.id)
+                      ? "border-primary shadow-md ring-2 ring-primary/20"
                       : "border-border/50 hover:border-primary/30"
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
+                    <div 
+                      className="flex items-center gap-4 flex-1 cursor-pointer"
+                      onClick={() => setExpandedFood(expandedFood?.id === food.id ? null : food)}
+                    >
                       <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-2xl">
                         {getCategoryEmoji(food.category)}
                       </div>
@@ -221,15 +343,52 @@ export function FoodSearch() {
                         <p className="text-2xl font-bold text-foreground">{food.calories}</p>
                         <p className="text-xs text-muted-foreground">kcal</p>
                       </div>
-                      <ChevronRight className={`w-5 h-5 text-muted-foreground transition-transform ${
-                        selectedFood?.id === food.id ? "rotate-90" : ""
-                      }`} />
+                      
+                      {/* Add/Remove Controls */}
+                      <div className="flex items-center gap-2">
+                        {isSelected(food.id) ? (
+                          <div className="flex items-center gap-1 bg-primary/10 rounded-full p-1">
+                            <button
+                              onClick={() => removeFood(food.id)}
+                              className="w-8 h-8 rounded-full bg-card hover:bg-destructive/20 hover:text-destructive flex items-center justify-center transition-colors"
+                            >
+                              <Minus className="w-4 h-4" />
+                            </button>
+                            <span className="w-8 text-center font-semibold text-foreground">
+                              {getQuantity(food.id)}
+                            </span>
+                            <button
+                              onClick={() => addFood(food)}
+                              className="w-8 h-8 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center transition-colors"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <Button
+                            variant="soft"
+                            size="sm"
+                            onClick={() => addFood(food)}
+                            className="gap-1"
+                          >
+                            <Plus className="w-4 h-4" />
+                            Add
+                          </Button>
+                        )}
+                      </div>
+                      
+                      <ChevronRight 
+                        className={`w-5 h-5 text-muted-foreground transition-transform cursor-pointer ${
+                          expandedFood?.id === food.id ? "rotate-90" : ""
+                        }`}
+                        onClick={() => setExpandedFood(expandedFood?.id === food.id ? null : food)}
+                      />
                     </div>
                   </div>
 
                   {/* Expanded View */}
                   <AnimatePresence>
-                    {selectedFood?.id === food.id && (
+                    {expandedFood?.id === food.id && (
                       <motion.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: "auto" }}
@@ -247,15 +406,9 @@ export function FoodSearch() {
                               Fiber: {food.fiber}g
                             </p>
                           )}
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <Database className="w-4 h-4" />
-                              <span>USDA FoodData Central</span>
-                            </div>
-                            <Button variant="soft" size="sm" className="gap-2">
-                              <Plus className="w-4 h-4" />
-                              Add to daily log
-                            </Button>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Database className="w-4 h-4" />
+                            <span>USDA FoodData Central</span>
                           </div>
                         </div>
                       </motion.div>
