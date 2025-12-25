@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Utensils, ChevronRight, Leaf, Drumstick, Info } from "lucide-react";
+import { Utensils, ChevronRight, Leaf, Drumstick, Info, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 type DietType = "vegetarian" | "non-vegetarian";
@@ -20,6 +20,11 @@ interface MealPlan {
   lunch: Meal;
   snack: Meal;
   dinner: Meal;
+}
+
+interface DietPlannerProps {
+  initialCalories?: number;
+  initialGoal?: Goal;
 }
 
 const mealPlans: Record<DietType, Record<Goal, MealPlan>> = {
@@ -87,10 +92,19 @@ function MealCard({ meal, time }: { meal: Meal; time: string }) {
   );
 }
 
-export function DietPlanner() {
+export function DietPlanner({ initialCalories, initialGoal }: DietPlannerProps) {
   const [dietType, setDietType] = useState<DietType>("vegetarian");
-  const [goal, setGoal] = useState<Goal>("maintain");
-  const [showPlan, setShowPlan] = useState(false);
+  const [goal, setGoal] = useState<Goal>(initialGoal || "maintain");
+  const [showPlan, setShowPlan] = useState(!!initialCalories);
+
+  useEffect(() => {
+    if (initialGoal) {
+      setGoal(initialGoal);
+    }
+    if (initialCalories) {
+      setShowPlan(true);
+    }
+  }, [initialCalories, initialGoal]);
 
   const currentPlan = mealPlans[dietType][goal];
   const totalCalories =
@@ -124,6 +138,17 @@ export function DietPlanner() {
             Realistic, repeatable meal plans designed for your goals. 
             No exotic ingredients — just practical, everyday foods.
           </p>
+          
+          {initialCalories && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span className="font-medium">Based on your target: {initialCalories} kcal/day</span>
+            </motion.div>
+          )}
         </motion.div>
 
         <div className="max-w-4xl mx-auto">
@@ -201,12 +226,14 @@ export function DietPlanner() {
           </div>
 
           {/* Generate Button */}
-          <div className="text-center mb-8">
-            <Button variant="hero" size="lg" onClick={() => setShowPlan(true)} className="gap-2">
-              Generate My Meal Plan
-              <ChevronRight className="w-5 h-5" />
-            </Button>
-          </div>
+          {!showPlan && (
+            <div className="text-center mb-8">
+              <Button variant="hero" size="lg" onClick={() => setShowPlan(true)} className="gap-2">
+                Generate My Meal Plan
+                <ChevronRight className="w-5 h-5" />
+              </Button>
+            </div>
+          )}
 
           {/* Meal Plan Display */}
           {showPlan && (

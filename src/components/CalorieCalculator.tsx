@@ -1,7 +1,8 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Calculator, Info, Flame, Activity, Target } from "lucide-react";
+import { Calculator, Info, Flame, Activity, Target, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 type Gender = "male" | "female";
 type Goal = "lose" | "maintain" | "gain";
@@ -22,6 +23,7 @@ const goals: { value: Goal; label: string; emoji: string; adjustment: number }[]
 ];
 
 export function CalorieCalculator() {
+  const navigate = useNavigate();
   const [gender, setGender] = useState<Gender>("male");
   const [age, setAge] = useState(25);
   const [height, setHeight] = useState(170);
@@ -68,6 +70,10 @@ export function CalorieCalculator() {
 
   const handleCalculate = () => {
     setShowResults(true);
+  };
+
+  const handleGoToDietPlanner = () => {
+    navigate(`/diet-planner?calories=${results.targetCalories}&goal=${goal}`);
   };
 
   return (
@@ -305,6 +311,17 @@ export function CalorieCalculator() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Go to Diet Planner */}
+                  <Button 
+                    variant="default" 
+                    size="lg" 
+                    className="w-full gap-2"
+                    onClick={handleGoToDietPlanner}
+                  >
+                    Get My Meal Plan
+                    <ArrowRight className="w-5 h-5" />
+                  </Button>
 
                   {/* Disclaimer */}
                   <div className="flex items-start gap-3 p-4 rounded-xl bg-muted/50 text-sm text-muted-foreground">
