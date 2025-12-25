@@ -81,16 +81,16 @@ export function BottomNav() {
 
         {/* Profile/Login */}
         <motion.button
-          onClick={() => navigate(user ? '/' : '/auth')}
+          onClick={() => navigate(user ? '/profile' : '/auth')}
           className={`relative flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all duration-300 ${
-            location.pathname === '/auth'
+            location.pathname === '/auth' || location.pathname === '/profile'
               ? "text-primary"
               : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
           }`}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
-          {location.pathname === '/auth' && (
+          {(location.pathname === '/auth' || location.pathname === '/profile') && (
             <motion.div
               layoutId="activeTab"
               className="absolute inset-0 bg-primary/10 rounded-2xl"
@@ -103,7 +103,7 @@ export function BottomNav() {
               <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center text-[10px] text-primary-foreground font-semibold">
                 {user.email?.charAt(0).toUpperCase()}
               </div>
-              <span className="text-[10px] mt-0.5 font-medium">You</span>
+              <span className="text-[10px] mt-0.5 font-medium">Profile</span>
             </>
           ) : (
             <>

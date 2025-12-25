@@ -29,7 +29,7 @@ serve(async (req) => {
   }
 
   try {
-    const { query, pageSize = 25 } = await req.json();
+    const { query } = await req.json();
 
     if (!query || query.trim().length < 2) {
       return new Response(JSON.stringify({ foods: [], total: 0 }), {
@@ -37,9 +37,9 @@ serve(async (req) => {
       });
     }
 
-    // Search USDA FoodData Central
+    // Search USDA FoodData Central - get only the top match
     const response = await fetch(
-      `${USDA_API_URL}?api_key=${USDA_API_KEY}&query=${encodeURIComponent(query)}&pageSize=${pageSize}&dataType=Foundation,SR Legacy`,
+      `${USDA_API_URL}?api_key=${USDA_API_KEY}&query=${encodeURIComponent(query)}&pageSize=5&dataType=Foundation,SR Legacy`,
       {
         method: "GET",
         headers: { "Content-Type": "application/json" },
@@ -77,10 +77,14 @@ serve(async (req) => {
       };
     });
 
+    // Filter to only items with calories and return the best match (first result)
+    const validFoods = foods.filter(f => f.calories > 0);
+    const bestMatch = validFoods.length > 0 ? [validFoods[0]] : [];
+
     return new Response(
       JSON.stringify({ 
-        foods: foods.filter(f => f.calories > 0),
-        total: data.totalHits || foods.length,
+        foods: bestMatch,
+        total: bestMatch.length,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
