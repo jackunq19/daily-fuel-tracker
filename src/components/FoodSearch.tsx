@@ -1,10 +1,12 @@
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Plus, Minus, ChevronRight, Loader2, Database, TrendingUp, X, ShoppingBasket } from "lucide-react";
+import { Search, Plus, Minus, ChevronRight, Loader2, Database, TrendingUp, X, ShoppingBasket, Target, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useDebouncedCallback } from "@/hooks/use-debounced-callback";
+import { useDailyGoals } from "@/hooks/useDailyGoals";
 
 interface FoodItem {
   id: string;
@@ -28,6 +30,30 @@ const popularSearches = [
   "Chicken breast", "Rice", "Banana", "Eggs", "Oatmeal", 
   "Salmon", "Avocado", "Greek yogurt", "Sweet potato", "Almonds"
 ];
+
+function MacroProgressBar({ label, current, target, color }: { label: string; current: number; target: number; color: string }) {
+  const percentage = Math.min((current / target) * 100, 100);
+  const isOver = current > target;
+  
+  return (
+    <div className="flex-1">
+      <div className="flex justify-between items-center mb-1">
+        <span className="text-xs font-medium text-muted-foreground">{label}</span>
+        <span className={`text-xs font-semibold ${isOver ? 'text-destructive' : 'text-foreground'}`}>
+          {Math.round(current)}g / {target}g
+        </span>
+      </div>
+      <div className="h-2 bg-muted rounded-full overflow-hidden">
+        <motion.div
+          initial={{ width: 0 }}
+          animate={{ width: `${percentage}%` }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className={`h-full rounded-full ${isOver ? 'bg-destructive' : color}`}
+        />
+      </div>
+    </div>
+  );
+}
 
 function MacroBar({ label, value, maxValue, color }: { label: string; value: number; maxValue: number; color: string }) {
   const percentage = Math.min((value / maxValue) * 100, 100);
@@ -57,7 +83,9 @@ export function FoodSearch() {
   const [expandedFood, setExpandedFood] = useState<FoodItem | null>(null);
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [showGoalSettings, setShowGoalSettings] = useState(false);
   const { toast } = useToast();
+  const { goals, updateGoals } = useDailyGoals();
 
   const searchFoods = useCallback(async (query: string) => {
     if (!query.trim() || query.length < 2) {
@@ -189,6 +217,110 @@ export function FoodSearch() {
         </motion.div>
 
         <div className="max-w-5xl mx-auto">
+          {/* Daily Goals Progress */}
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 p-5 rounded-2xl bg-card border border-border"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-accent/20 flex items-center justify-center">
+                  <Target className="w-5 h-5 text-accent" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground">Daily Goals</h3>
+                  <p className="text-sm text-muted-foreground">Track your progress</p>
+                </div>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setShowGoalSettings(!showGoalSettings)}
+                className="text-muted-foreground"
+              >
+                <Settings className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {/* Goal Settings */}
+            <AnimatePresence>
+              {showGoalSettings && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mb-4 p-4 rounded-xl bg-muted/50 space-y-3 overflow-hidden"
+                >
+                  <p className="text-xs text-muted-foreground mb-2">Set your daily targets:</p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div>
+                      <label className="text-xs text-muted-foreground">Calories</label>
+                      <input
+                        type="number"
+                        value={goals.calories}
+                        onChange={(e) => updateGoals({ calories: Number(e.target.value) })}
+                        className="w-full mt-1 px-3 py-2 rounded-lg bg-card border border-border text-foreground text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Protein (g)</label>
+                      <input
+                        type="number"
+                        value={goals.protein}
+                        onChange={(e) => updateGoals({ protein: Number(e.target.value) })}
+                        className="w-full mt-1 px-3 py-2 rounded-lg bg-card border border-border text-foreground text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Carbs (g)</label>
+                      <input
+                        type="number"
+                        value={goals.carbs}
+                        onChange={(e) => updateGoals({ carbs: Number(e.target.value) })}
+                        className="w-full mt-1 px-3 py-2 rounded-lg bg-card border border-border text-foreground text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Fats (g)</label>
+                      <input
+                        type="number"
+                        value={goals.fats}
+                        onChange={(e) => updateGoals({ fats: Number(e.target.value) })}
+                        className="w-full mt-1 px-3 py-2 rounded-lg bg-card border border-border text-foreground text-sm"
+                      />
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Calories Progress */}
+            <div className="mb-4">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm font-medium text-foreground">Calories</span>
+                <span className={`text-sm font-semibold ${totals.calories > goals.calories ? 'text-destructive' : 'text-foreground'}`}>
+                  {Math.round(totals.calories)} / {goals.calories} kcal
+                </span>
+              </div>
+              <div className="h-3 bg-muted rounded-full overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${Math.min((totals.calories / goals.calories) * 100, 100)}%` }}
+                  transition={{ duration: 0.5, ease: "easeOut" }}
+                  className={`h-full rounded-full ${totals.calories > goals.calories ? 'bg-destructive' : 'bg-primary'}`}
+                />
+              </div>
+            </div>
+
+            {/* Macro Progress */}
+            <div className="grid grid-cols-3 gap-4">
+              <MacroProgressBar label="Protein" current={totals.protein} target={goals.protein} color="bg-macro-protein" />
+              <MacroProgressBar label="Carbs" current={totals.carbs} target={goals.carbs} color="bg-macro-carbs" />
+              <MacroProgressBar label="Fats" current={totals.fats} target={goals.fats} color="bg-macro-fats" />
+            </div>
+          </motion.div>
+
           {/* Selection Summary - Fixed at top when items selected */}
           <AnimatePresence>
             {selectedFoods.length > 0 && (
@@ -212,26 +344,6 @@ export function FoodSearch() {
                     <X className="w-4 h-4 mr-1" />
                     Clear All
                   </Button>
-                </div>
-
-                {/* Totals Grid */}
-                <div className="grid grid-cols-4 gap-4 mb-4">
-                  <div className="text-center p-3 rounded-xl bg-card/50">
-                    <p className="text-2xl font-bold text-foreground">{Math.round(totals.calories)}</p>
-                    <p className="text-xs text-muted-foreground">Calories</p>
-                  </div>
-                  <div className="text-center p-3 rounded-xl bg-macro-protein/10">
-                    <p className="text-2xl font-bold text-macro-protein">{Math.round(totals.protein)}g</p>
-                    <p className="text-xs text-muted-foreground">Protein</p>
-                  </div>
-                  <div className="text-center p-3 rounded-xl bg-macro-carbs/10">
-                    <p className="text-2xl font-bold text-macro-carbs">{Math.round(totals.carbs)}g</p>
-                    <p className="text-xs text-muted-foreground">Carbs</p>
-                  </div>
-                  <div className="text-center p-3 rounded-xl bg-macro-fats/10">
-                    <p className="text-2xl font-bold text-macro-fats">{Math.round(totals.fats)}g</p>
-                    <p className="text-xs text-muted-foreground">Fats</p>
-                  </div>
                 </div>
 
                 {/* Selected Items */}
