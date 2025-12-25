@@ -1,10 +1,9 @@
-import { motion, useScroll, useTransform } from "framer-motion";
-import { useRef } from "react";
+import { motion, useScroll, useTransform, useMotionValue, useSpring } from "framer-motion";
+import { useRef, useState } from "react";
 import { ArrowRight, Zap, Target, TrendingUp, Flame, Apple, Calculator, UtensilsCrossed, Award, Users, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { InteractiveNutritionCore } from "./InteractiveNutritionCore";
-
+import nutritionRobot from "@/assets/nutrition-robot.png";
 const features = [
   {
     icon: Apple,
@@ -34,6 +33,112 @@ const stats = [
   { icon: BarChart3, value: "500K+", label: "Foods Tracked" },
   { icon: Award, value: "98%", label: "Success Rate" },
 ];
+
+// Interactive Robot Mascot with parallax effect
+function RobotMascot() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [isHovered, setIsHovered] = useState(false);
+  
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  
+  const springConfig = { stiffness: 150, damping: 20 };
+  const rotateX = useSpring(useMotionValue(0), springConfig);
+  const rotateY = useSpring(useMotionValue(0), springConfig);
+  const scale = useSpring(1, springConfig);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!ref.current) return;
+    
+    const rect = ref.current.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    
+    const mouseX = e.clientX - centerX;
+    const mouseY = e.clientY - centerY;
+    
+    rotateX.set(mouseY * 0.02);
+    rotateY.set(-mouseX * 0.02);
+    x.set(mouseX * 0.05);
+    y.set(mouseY * 0.05);
+  };
+
+  const handleMouseEnter = () => {
+    setIsHovered(true);
+    scale.set(1.05);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    rotateX.set(0);
+    rotateY.set(0);
+    x.set(0);
+    y.set(0);
+    scale.set(1);
+  };
+
+  return (
+    <motion.div
+      ref={ref}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      style={{
+        rotateX,
+        rotateY,
+        x,
+        y,
+        scale,
+        perspective: 1000,
+      }}
+      className="relative cursor-pointer"
+    >
+      {/* Glow effect */}
+      <motion.div
+        animate={{
+          opacity: isHovered ? 0.8 : 0.4,
+          scale: isHovered ? 1.1 : 1,
+        }}
+        className="absolute inset-0 bg-gradient-to-b from-primary/30 via-primary/10 to-transparent rounded-full blur-3xl -z-10"
+      />
+      
+      {/* Floating animation */}
+      <motion.div
+        animate={{
+          y: [0, -10, 0],
+        }}
+        transition={{
+          duration: 4,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+      >
+        <img
+          src={nutritionRobot}
+          alt="NutriTrack AI Assistant"
+          className="w-full max-w-md h-auto drop-shadow-2xl"
+        />
+      </motion.div>
+
+      {/* Sparkle effects */}
+      {isHovered && (
+        <>
+          <motion.div
+            initial={{ opacity: 0, scale: 0 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="absolute top-10 right-10 w-3 h-3 bg-primary rounded-full animate-pulse"
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.1 }}
+            className="absolute bottom-20 left-5 w-2 h-2 bg-accent rounded-full animate-pulse"
+          />
+        </>
+      )}
+    </motion.div>
+  );
+}
 
 function HeroSection() {
   const navigate = useNavigate();
@@ -127,14 +232,14 @@ function HeroSection() {
             </div>
           </motion.div>
 
-          {/* Right content - Interactive Core */}
+          {/* Right content - Robot Mascot */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="hidden lg:block"
+            className="hidden lg:flex items-center justify-center relative"
           >
-            <InteractiveNutritionCore />
+            <RobotMascot />
           </motion.div>
         </div>
       </div>
