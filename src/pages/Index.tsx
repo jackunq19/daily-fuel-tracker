@@ -1,13 +1,38 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { Helmet } from "react-helmet-async";
+import { Navbar } from "@/components/Navbar";
+import { Hero } from "@/components/Hero";
+import { FoodSearch } from "@/components/FoodSearch";
+import { CalorieCalculator } from "@/components/CalorieCalculator";
+import { DietPlanner } from "@/components/DietPlanner";
+import { Footer } from "@/components/Footer";
 
 const Index = () => {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+    <>
+      <Helmet>
+        <title>NutriTrack - Simple Calorie & Nutrition Tracker</title>
+        <meta
+          name="description"
+          content="Track your calories and nutrition effortlessly. Search 10,000+ foods, calculate daily needs, and get personalized meal plans. Free calorie tracker for beginners."
+        />
+        <meta
+          name="keywords"
+          content="calorie tracker, nutrition tracker, food calories, macro tracker, diet planner, calorie calculator, BMR calculator, TDEE calculator"
+        />
+        <link rel="canonical" href="https://nutritrack.app" />
+      </Helmet>
+
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main>
+          <Hero />
+          <FoodSearch />
+          <CalorieCalculator />
+          <DietPlanner />
+        </main>
+        <Footer />
       </div>
-    </div>
+    </>
   );
 };
 
