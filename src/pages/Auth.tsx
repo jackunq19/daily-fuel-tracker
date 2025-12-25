@@ -2,12 +2,13 @@ import { useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { Leaf, Mail, Lock, User, Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
+import { Leaf, Mail, Lock, User, Eye, EyeOff, ArrowRight, Loader2, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { BottomNav } from "@/components/BottomNav";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -152,7 +153,7 @@ const Auth = () => {
         />
       </Helmet>
 
-      <div className="min-h-screen bg-background flex">
+      <div className="min-h-screen bg-background gradient-mesh flex pb-24">
         {/* Left side - Form */}
         <div className="flex-1 flex items-center justify-center p-8">
           <motion.div
@@ -357,6 +358,7 @@ const Auth = () => {
           </motion.div>
         </div>
       </div>
+      <BottomNav />
     </>
   );
 };

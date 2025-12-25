@@ -1,7 +1,10 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Plus, Info, ChevronRight } from "lucide-react";
+import { Search, Plus, Info, ChevronRight, Loader2, Database, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useDebouncedCallback } from "@/hooks/use-debounced-callback";
 
 interface FoodItem {
   id: string;
@@ -11,29 +14,16 @@ interface FoodItem {
   protein: number;
   carbs: number;
   fats: number;
+  fiber?: number;
   servingSize: string;
-  isEstimate?: boolean;
+  servingWeight: number;
+  source: 'usda' | 'custom';
 }
 
-const foodDatabase: FoodItem[] = [
-  { id: "1", name: "Chicken Breast (Grilled)", category: "Protein", calories: 165, protein: 31, carbs: 0, fats: 3.6, servingSize: "100g" },
-  { id: "2", name: "Brown Rice (Cooked)", category: "Grains", calories: 111, protein: 2.6, carbs: 23, fats: 0.9, servingSize: "100g" },
-  { id: "3", name: "Banana", category: "Fruits", calories: 89, protein: 1.1, carbs: 23, fats: 0.3, servingSize: "100g" },
-  { id: "4", name: "Egg (Whole, Boiled)", category: "Protein", calories: 155, protein: 13, carbs: 1.1, fats: 11, servingSize: "100g" },
-  { id: "5", name: "Paneer", category: "Dairy", calories: 265, protein: 18, carbs: 1.2, fats: 21, servingSize: "100g" },
-  { id: "6", name: "Dal (Cooked Lentils)", category: "Legumes", calories: 116, protein: 9, carbs: 20, fats: 0.4, servingSize: "100g" },
-  { id: "7", name: "Roti/Chapati", category: "Grains", calories: 71, protein: 2.7, carbs: 15, fats: 0.4, servingSize: "1 piece (30g)" },
-  { id: "8", name: "Apple", category: "Fruits", calories: 52, protein: 0.3, carbs: 14, fats: 0.2, servingSize: "100g" },
-  { id: "9", name: "Oats (Cooked)", category: "Grains", calories: 71, protein: 2.5, carbs: 12, fats: 1.5, servingSize: "100g" },
-  { id: "10", name: "Greek Yogurt", category: "Dairy", calories: 59, protein: 10, carbs: 3.6, fats: 0.7, servingSize: "100g" },
-  { id: "11", name: "Almonds", category: "Nuts", calories: 579, protein: 21, carbs: 22, fats: 50, servingSize: "100g" },
-  { id: "12", name: "Salmon (Grilled)", category: "Protein", calories: 208, protein: 20, carbs: 0, fats: 13, servingSize: "100g" },
-  { id: "13", name: "Sweet Potato (Baked)", category: "Vegetables", calories: 86, protein: 1.6, carbs: 20, fats: 0.1, servingSize: "100g" },
-  { id: "14", name: "Milk (Whole)", category: "Dairy", calories: 61, protein: 3.2, carbs: 4.8, fats: 3.3, servingSize: "100g" },
-  { id: "15", name: "Idli", category: "Grains", calories: 39, protein: 2, carbs: 8, fats: 0.1, servingSize: "1 piece (30g)" },
+const popularSearches = [
+  "Chicken breast", "Rice", "Banana", "Eggs", "Oatmeal", 
+  "Salmon", "Avocado", "Greek yogurt", "Sweet potato", "Almonds"
 ];
-
-const quickFilters = ["All", "Protein", "Grains", "Fruits", "Dairy", "Vegetables"];
 
 function MacroBar({ label, value, maxValue, color }: { label: string; value: number; maxValue: number; color: string }) {
   const percentage = Math.min((value / maxValue) * 100, 100);
@@ -58,14 +48,75 @@ function MacroBar({ label, value, maxValue, color }: { label: string; value: num
 
 export function FoodSearch() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeFilter, setActiveFilter] = useState("All");
+  const [foods, setFoods] = useState<FoodItem[]>([]);
   const [selectedFood, setSelectedFood] = useState<FoodItem | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+  const { toast } = useToast();
 
-  const filteredFoods = foodDatabase.filter((food) => {
-    const matchesSearch = food.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesFilter = activeFilter === "All" || food.category === activeFilter;
-    return matchesSearch && matchesFilter;
-  });
+  const searchFoods = useCallback(async (query: string) => {
+    if (!query.trim() || query.length < 2) {
+      setFoods([]);
+      setHasSearched(false);
+      return;
+    }
+
+    setLoading(true);
+    setHasSearched(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('search-food', {
+        body: { query, pageSize: 20 },
+      });
+
+      if (error) throw error;
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      setFoods(data.foods || []);
+    } catch (error: any) {
+      console.error("Error searching foods:", error);
+      toast({
+        title: "Search failed",
+        description: "Unable to search foods. Please try again.",
+        variant: "destructive",
+      });
+      setFoods([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
+
+  const debouncedSearch = useDebouncedCallback(searchFoods, 500);
+
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    debouncedSearch(value);
+  };
+
+  const handleQuickSearch = (term: string) => {
+    setSearchQuery(term);
+    searchFoods(term);
+  };
+
+  const getCategoryEmoji = (category: string) => {
+    const lower = category.toLowerCase();
+    if (lower.includes('beef') || lower.includes('pork') || lower.includes('meat')) return "🥩";
+    if (lower.includes('poultry') || lower.includes('chicken')) return "🍗";
+    if (lower.includes('fish') || lower.includes('seafood')) return "🐟";
+    if (lower.includes('dairy') || lower.includes('milk') || lower.includes('cheese')) return "🥛";
+    if (lower.includes('vegetable')) return "🥕";
+    if (lower.includes('fruit')) return "🍎";
+    if (lower.includes('grain') || lower.includes('cereal') || lower.includes('bread')) return "🌾";
+    if (lower.includes('legume') || lower.includes('bean')) return "🫘";
+    if (lower.includes('nut') || lower.includes('seed')) return "🥜";
+    if (lower.includes('egg')) return "🥚";
+    if (lower.includes('beverage') || lower.includes('drink')) return "🥤";
+    if (lower.includes('snack') || lower.includes('sweet')) return "🍪";
+    return "🍽️";
+  };
 
   return (
     <section id="food-search" className="py-16 md:py-24 bg-background">
@@ -76,12 +127,16 @@ export function FoodSearch() {
           viewport={{ once: true }}
           className="text-center mb-12"
         >
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
+            <Database className="w-4 h-4" />
+            <span>Real-Time Data</span>
+          </div>
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
             Search Foods & Nutrition
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Find accurate calorie and macro information for thousands of foods.
-            All data is verified — never estimated or made up.
+            Access accurate nutrition data from the USDA database. 
+            Real-time information for thousands of foods worldwide.
           </p>
         </motion.div>
 
@@ -97,60 +152,65 @@ export function FoodSearch() {
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search for food... e.g., 'Chicken', 'Rice', 'Banana'"
+              onChange={(e) => handleSearchChange(e.target.value)}
+              placeholder="Search for any food... e.g., 'Chicken', 'Rice', 'Banana'"
               className="w-full pl-14 pr-6 py-5 rounded-2xl bg-card border-2 border-border focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none text-foreground placeholder:text-muted-foreground text-lg transition-all shadow-sm"
             />
+            {loading && (
+              <Loader2 className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-primary animate-spin" />
+            )}
           </motion.div>
 
-          {/* Quick Filters */}
-          <div className="flex flex-wrap gap-2 mb-8 justify-center">
-            {quickFilters.map((filter) => (
-              <button
-                key={filter}
-                onClick={() => setActiveFilter(filter)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                  activeFilter === filter
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80"
-                }`}
-              >
-                {filter}
-              </button>
-            ))}
-          </div>
+          {/* Popular Searches */}
+          {!hasSearched && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="mb-8"
+            >
+              <p className="text-sm text-muted-foreground mb-3 flex items-center gap-2">
+                <TrendingUp className="w-4 h-4" />
+                Popular searches
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {popularSearches.map((term) => (
+                  <button
+                    key={term}
+                    onClick={() => handleQuickSearch(term)}
+                    className="px-4 py-2 rounded-full text-sm font-medium bg-muted text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-all"
+                  >
+                    {term}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          )}
 
           {/* Results Grid */}
           <div className="grid gap-4">
             <AnimatePresence mode="popLayout">
-              {filteredFoods.slice(0, 8).map((food, index) => (
+              {foods.map((food, index) => (
                 <motion.div
                   key={food.id}
                   layout
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ delay: index * 0.05 }}
+                  transition={{ delay: index * 0.03 }}
                   onClick={() => setSelectedFood(selectedFood?.id === food.id ? null : food)}
-                  className={`group p-5 rounded-xl bg-card border-2 cursor-pointer transition-all ${
+                  className={`group p-5 rounded-xl bg-card border-2 cursor-pointer transition-all card-hover ${
                     selectedFood?.id === food.id
                       ? "border-primary shadow-md"
-                      : "border-border/50 hover:border-primary/30 hover:shadow-sm"
+                      : "border-border/50 hover:border-primary/30"
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-primary-muted flex items-center justify-center text-xl">
-                        {food.category === "Protein" && "🍗"}
-                        {food.category === "Grains" && "🌾"}
-                        {food.category === "Fruits" && "🍎"}
-                        {food.category === "Dairy" && "🥛"}
-                        {food.category === "Vegetables" && "🥕"}
-                        {food.category === "Legumes" && "🫘"}
-                        {food.category === "Nuts" && "🥜"}
+                      <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-2xl">
+                        {getCategoryEmoji(food.category)}
                       </div>
                       <div>
-                        <h3 className="font-semibold text-foreground">{food.name}</h3>
+                        <h3 className="font-semibold text-foreground line-clamp-1">{food.name}</h3>
                         <p className="text-sm text-muted-foreground">
                           {food.servingSize} • {food.category}
                         </p>
@@ -179,13 +239,18 @@ export function FoodSearch() {
                         <div className="pt-5 mt-5 border-t border-border">
                           <div className="flex gap-6 mb-4">
                             <MacroBar label="Protein" value={food.protein} maxValue={50} color="bg-macro-protein" />
-                            <MacroBar label="Carbs" value={food.carbs} maxValue={50} color="bg-macro-carbs" />
+                            <MacroBar label="Carbs" value={food.carbs} maxValue={80} color="bg-macro-carbs" />
                             <MacroBar label="Fats" value={food.fats} maxValue={50} color="bg-macro-fats" />
                           </div>
+                          {food.fiber !== undefined && food.fiber > 0 && (
+                            <p className="text-sm text-muted-foreground mb-4">
+                              Fiber: {food.fiber}g
+                            </p>
+                          )}
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <Info className="w-4 h-4" />
-                              <span>Verified nutrition data</span>
+                              <Database className="w-4 h-4" />
+                              <span>USDA FoodData Central</span>
                             </div>
                             <Button variant="soft" size="sm" className="gap-2">
                               <Plus className="w-4 h-4" />
@@ -201,10 +266,10 @@ export function FoodSearch() {
             </AnimatePresence>
           </div>
 
-          {filteredFoods.length === 0 && (
+          {hasSearched && foods.length === 0 && !loading && (
             <div className="text-center py-12 text-muted-foreground">
-              <p className="text-lg mb-2">No foods found</p>
-              <p className="text-sm">Try a different search term</p>
+              <p className="text-lg mb-2">No foods found for "{searchQuery}"</p>
+              <p className="text-sm">Try a different search term or check spelling</p>
             </div>
           )}
         </div>
